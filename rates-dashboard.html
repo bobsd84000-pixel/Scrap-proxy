@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CurrencyPulse Dashboard — Taux USD</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #0f172a;
+      --secondary: #1e293b;
+      --tertiary: #0f1527;
+      --accent: #10b981;
+      --accent-dark: #059669;
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --border: #334155;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.error {
+      background: var(--error);
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .rates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .rate-card {
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .rate-card:hover {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--secondary) 0%, var(--tertiary) 100%);
+    }
+
+    .currency-pair {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.5rem;
+    }
+
+    .rate-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), #6ee7b7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .rate-change {
+      font-size: 0.9rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 0.25rem;
+      display: inline-block;
+      margin-top: 0.5rem;
+    }
+
+    .rate-change.up {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+    }
+
+    .rate-change.down {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    .chart-container {
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      height: 400px;
+    }
+
+    .chart-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .control-btn {
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .control-btn:hover {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    .control-btn.active {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    .refresh-rate {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      padding: 0.75rem 1.5rem;
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .last-update {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+      }
+
+      .rates-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+
+      .rate-value {
+        font-size: 1.75rem;
+      }
+
+      .chart-container {
+        height: 300px;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      .control-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        💱 CurrencyPulse Dashboard
+      </div>
+      <div class="status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connecté</span>
+      </div>
+    </header>
+
+    <div class="error-message" id="errorMessage"></div>
+
+    <div class="controls">
+      <button class="control-btn active" onclick="setRefreshRate(5)">5s</button>
+      <button class="control-btn" onclick="setRefreshRate(10)">10s</button>
+      <button class="control-btn" onclick="setRefreshRate(30)">30s</button>
+      <button class="control-btn" onclick="setRefreshRate(60)">1m</button>
+      <button class="control-btn" onclick="toggleAutoRefresh()">🔄 Stop Auto</button>
+      <span class="refresh-rate" id="refreshRate">Actualisation: 5s</span>
+    </div>
+
+    <div class="rates-grid" id="ratesGrid"></div>
+
+    <div class="chart-container">
+      <div class="chart-title">Historique des taux (30 dernières minutes)</div>
+      <canvas id="ratesChart"></canvas>
+    </div>
+
+    <div class="last-update" id="lastUpdate"></div>
+  </div>
+
+  <script>
+    const API_URL = '/api/rates';
+    const CURRENCIES = ['EUR', 'GBP', 'CHF', 'JPY', 'CAD'];
+
+    let refreshRate = 5000;
+    let autoRefresh = true;
+    let refreshIntervalId = null;
+    let ratesHistory = {};
+    let chart = null;
+
+    // Initialiser l'historique
+    CURRENCIES.forEach(curr => {
+      ratesHistory[curr] = [];
+    });
+
+    async function fetchRates() {
+      try {
+        const params = new URLSearchParams({
+          base: 'USD',
+          targets: CURRENCIES.join(',')
+        });
+
+        const response = await fetch(`${API_URL}?${params}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        if (!data.ok) throw new Error(data.error || 'API error');
+
+        updateRatesDisplay(data.rates);
+        updateChart(data.rates);
+        setStatus(true);
+        updateLastUpdate();
+
+        return data.rates;
+      } catch (error) {
+        console.error('Erreur fetch:', error);
+        setStatus(false);
+        showError(`Erreur: ${error.message}`);
+      }
+    }
+
+    function updateRatesDisplay(rates) {
+      const grid = document.getElementById('ratesGrid');
+      grid.innerHTML = CURRENCIES.map(curr => {
+        const rate = rates[curr];
+        const history = ratesHistory[curr];
+        const prevRate = history.length > 0 ? history[history.length - 1] : rate;
+        const change = rate - prevRate;
+        const changePercent = ((change / prevRate) * 100).toFixed(3);
+
+        // Garder max 180 points (30 min à 10s par point)
+        history.push(rate);
+        if (history.length > 180) history.shift();
+
+        const isUp = change >= 0;
+
+        return `
+          <div class="rate-card">
+            <div class="currency-pair">USD/${curr}</div>
+            <div class="rate-value">${rate.toFixed(4)}</div>
+            <div class="rate-change ${isUp ? 'up' : 'down'}">
+              ${isUp ? '📈' : '📉'} ${Math.abs(changePercent)}%
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateChart(rates) {
+      const ctx = document.getElementById('ratesChart').getContext('2d');
+      const datasets = CURRENCIES.map((curr, idx) => {
+        const colors = ['#10b981', '#06b6d4', '#f59e0b', '#8b5cf6', '#ec4899'];
+        return {
+          label: `USD/${curr}`,
+          data: ratesHistory[curr],
+          borderColor: colors[idx],
+          backgroundColor: colors[idx] + '20',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 0,
+          pointHoverRadius: 6
+        };
+      });
+
+      if (chart) {
+        chart.data.datasets = datasets;
+        CURRENCIES.forEach((curr, idx) => {
+          chart.data.datasets[idx].data = ratesHistory[curr];
+        });
+        chart.update('none');
+      } else {
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: Array(Math.max(...CURRENCIES.map(c => ratesHistory[c].length))).fill(''),
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: { color: '#cbd5e1' }
+              }
+            },
+            scales: {
+              y: {
+                ticks: { color: '#8899aa' },
+                grid: { color: '#334155' }
+              },
+              x: {
+                ticks: { color: '#8899aa' },
+                grid: { color: '#334155' }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function setStatus(connected) {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      if (connected) {
+        dot.className = 'status-dot';
+        text.textContent = 'Connecté';
+      } else {
+        dot.className = 'status-dot error';
+        text.textContent = 'Erreur connexion';
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorMessage');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 5000);
+    }
+
+    function updateLastUpdate() {
+      const el = document.getElementById('lastUpdate');
+      el.textContent = `Dernière mise à jour: ${new Date().toLocaleTimeString('fr-FR')}`;
+    }
+
+    function setRefreshRate(ms) {
+      refreshRate = ms;
+      document.querySelectorAll('.control-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      document.getElementById('refreshRate').textContent = `Actualisation: ${ms / 1000}s`;
+
+      if (autoRefresh) {
+        clearInterval(refreshIntervalId);
+        refreshIntervalId = setInterval(fetchRates, refreshRate);
+      }
+    }
+
+    function toggleAutoRefresh() {
+      autoRefresh = !autoRefresh;
+      const btn = event.target;
+      btn.textContent = autoRefresh ? '🔄 Stop Auto' : '▶ Start Auto';
+      btn.classList.toggle('active');
+
+      if (autoRefresh) {
+        refreshIntervalId = setInterval(fetchRates, refreshRate);
+      } else {
+        clearInterval(refreshIntervalId);
+      }
+    }
+
+    // Initialiser
+    fetchRates();
+    refreshIntervalId = setInterval(fetchRates, refreshRate);
+  </script>
+</body>
+</html>
