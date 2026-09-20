@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
   try {
     const r = await fetch(target, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+      headers: { 'User-Agent': 'script:agent-reach:v1.0 (by /u/bobsd84000)' }
     });
 
     if (!r.ok) {
